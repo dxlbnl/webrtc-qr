@@ -1,0 +1,62 @@
+<:Head>
+	<title>Sapper project template</title>
+</:Head>
+
+<Layout page='home'>
+	<h1>Great success!</h1>
+	<video ref:video id="video" width="640" height="480" autoplay></video>
+	<p><strong>Try editing this file (routes/index.html) to test hot module reloading.</strong></p>
+</Layout>
+
+<style>
+	h1, p {
+		text-align: center;
+		margin: 0 auto;
+	}
+
+	h1 {
+		font-size: 2.8em;
+		text-transform: uppercase;
+		font-weight: 700;
+		margin: 0 0 0.5em 0;
+	}
+
+	p {
+		margin: 1em auto;
+	}
+
+	@media (min-width: 480px) {
+		h1 {
+			font-size: 4em;
+		}
+	}
+</style>
+
+<script>
+
+	// ES6 import
+	import jsQR from "jsqr";
+ 
+	import Layout from './_components/Layout.html';
+
+	export default {
+		oncreate () {
+
+			// Get access to the camera!
+			if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+			    // Not adding `{ audio: true }` since we only want video now
+			    navigator.mediaDevices.getUserMedia({ video: true })
+			    	.then(stream => {
+			        this.refs.video.src = window.URL.createObjectURL(stream);
+			        console.log("Playing", video.src)
+			        this.refs.video.play();
+			    })
+			} else {
+				console.error("No webcam??")
+			}
+		},
+		components: {
+			Layout
+		}
+	};
+</script>
