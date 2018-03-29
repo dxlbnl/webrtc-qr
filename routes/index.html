@@ -4,8 +4,16 @@
 
 <Layout page='home'>
   <h1>Great success!</h1>
+  <div>
+    <section>
+      <button on:click='snap()'>test</button>
+      <p>Code: {{JSON.stringify(code)}}</p>
+    </section>
+    <canvas hidden='true' ref:canvas width="640" height="480"></canvas>
+    <img ref:image />
+  </div>
   <video ref:video playsinline width="640" height="480" autoplay></video>
-  <canvas ref:canvas width="640" height="480"></canvas>
+
   <p><strong>Try editing this file (routes/index.html) to test hot module reloading.</strong></p>
   <p>Constraints: {{JSON.stringify(constraints)}}</p>
   <p>label: {{JSON.stringify(label)}}</p>
@@ -45,29 +53,30 @@
   import Layout from './_components/Layout.html';
   function takeSnapshot(canvas, video, image){
 
-      var hidden_canvas = document.querySelector('canvas'),
-          video = document.querySelector('video.camera_stream'),
-          image = document.querySelector('img.photo'),
-
-          // Get the exact size of the video element.
-          width = video.videoWidth,
+      // Get the exact size of the video element.
+      var width = video.videoWidth,
           height = video.videoHeight,
 
           // Context object for working with the canvas.
-          context = hidden_canvas.getContext('2d');
+          context = canvas.getContext('2d');
 
       // Set the canvas to the same dimensions as the video.
-      hidden_canvas.width = width;
-      hidden_canvas.height = height;
+      canvas.width = width;
+      canvas.height = height;
 
       // Draw a copy of the current frame from the video on the canvas.
       context.drawImage(video, 0, 0, width, height);
 
       // Get an image dataURL from the canvas.
-      var imageDataURL = hidden_canvas.toDataURL('image/png');
+      var imageDataURL = canvas.toDataURL('image/png');
+      const imageData = context.getImageData(0, 0, width, height)
 
       // Set the dataURL as source of an image element, showing the captured photo.
       image.setAttribute('src', imageDataURL); 
+
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      return code
+
 
   }
 
@@ -95,7 +104,6 @@
         window.stream = stream; // make variable available to browser console
         // this.refs.video.srcObject = stream;
         this.refs.video.src = window.URL.createObjectURL(stream);
-
       })
       .catch(error => {
         console.error(error)
@@ -103,6 +111,13 @@
           error
         })
       })
+    },
+    methods: {
+      snap () {
+        this.set({
+          code: takeSnapshot(this.refs.canvas, this.refs.video, this.refs.image)
+        })
+      }
     },
     components: {
       Layout
