@@ -4,16 +4,22 @@
 
 <Layout page='about'>
 	<h1>About this site</h1>
-
-	<p>This is the 'about' page. There's not much here.</p>
+  <input type='text' bind:value />
+  <QR :value />
 </Layout>
 
 <script>
 	import Layout from './_components/Layout.html';
+  import QR from './_components/QR.html'
 
 	export default {
+    data () {
+      return {
+        value: ''
+      }
+    },
 		components: {
-			Layout
+			Layout, QR
 		}
 	};
 </script>

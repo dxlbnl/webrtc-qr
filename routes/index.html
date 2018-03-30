@@ -10,7 +10,7 @@
       <p>Code: {{JSON.stringify(code)}}</p>
     </section>
     <canvas hidden='true' ref:canvas width="640" height="480"></canvas>
-    <img ref:image />
+    <img ref:image alt='debug' />
   </div>
   <video ref:video playsinline width="640" height="480" autoplay></video>
 
@@ -76,8 +76,6 @@
 
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       return code
-
-
   }
 
 
@@ -103,7 +101,7 @@
         };
         window.stream = stream; // make variable available to browser console
         // this.refs.video.srcObject = stream;
-        this.refs.video.src = window.URL.createObjectURL(stream);
+        this.refs.video.srcObject = stream;
       })
       .catch(error => {
         console.error(error)
