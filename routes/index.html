@@ -6,13 +6,12 @@
   <h1>Great success!</h1>
   <div>
     <section>
-      <button on:click='snap()'>test</button>
+      <button on:click='start()'>test</button>
       <p>Code: {{JSON.stringify(code)}}</p>
     </section>
-    <canvas hidden='true' ref:canvas width="640" height="480"></canvas>
     <img ref:image alt='debug' />
   </div>
-  <video ref:video playsinline width="640" height="480" autoplay></video>
+  <video hidden ref:video playsinline width="640" height="480" autoplay></video>
 
   <p><strong>Try editing this file (routes/index.html) to test hot module reloading.</strong></p>
   <p>Constraints: {{JSON.stringify(constraints)}}</p>
@@ -51,45 +50,57 @@
   import jsQR from "jsqr";
  
   import Layout from './_components/Layout.html';
-  function takeSnapshot(canvas, video, image){
 
-      // Get the exact size of the video element.
-      var width = video.videoWidth,
-          height = video.videoHeight,
-
-          // Context object for working with the canvas.
-          context = canvas.getContext('2d');
-
-      // Set the canvas to the same dimensions as the video.
-      canvas.width = width;
-      canvas.height = height;
-
-      // Draw a copy of the current frame from the video on the canvas.
-      context.drawImage(video, 0, 0, width, height);
-
-      // Get an image dataURL from the canvas.
-      var imageDataURL = canvas.toDataURL('image/png');
-      const imageData = context.getImageData(0, 0, width, height)
-
-      // Set the dataURL as source of an image element, showing the captured photo.
-      image.setAttribute('src', imageDataURL); 
-
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-      return code
+  function wait (ms) {
+    return new Promise((resolve, reject) => window.setTimeout(resolve, ms))
   }
-
-
-
 
   export default {
     oncreate () {
-      // Not adding `{ audio: true }` since we only want video now
-      const constraints = {
-        audio: false,
-        video: true
-      }
-      navigator.mediaDevices.getUserMedia(constraints)
-      .then(stream => {
+      this.setupCam()
+    },
+    methods: {
+      snap () {
+        const video = this.refs.video
+        const image = this.refs.image
+
+        // Get the exact size of the video element.
+        const width = video.videoWidth
+        const height = video.videoHeight
+
+        const canvas = document.createElement('canvas')
+        // Context object for working with the canvas.
+        const context = canvas.getContext('2d');
+
+
+        // Set the canvas to the same dimensions as the video.
+        canvas.width = width;
+        canvas.height = height;
+
+        // Draw a copy of the current frame from the video on the canvas.
+        context.drawImage(video, 0, 0, width, height);
+
+        // Get an image dataURL from the canvas.
+        var imageDataURL = canvas.toDataURL('image/png');
+        const imageData = context.getImageData(0, 0, width, height)
+
+        // Set the dataURL as source of an image element, showing the captured photo.
+        image.setAttribute('src', imageDataURL); 
+
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+        this.set({
+          code: code
+        })
+      },
+      async setupCam () {
+        // Not adding `{ audio: true }` since we only want video now
+        const constraints = {
+          audio: false,
+          video: true
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints)
         const videoTracks = stream.getVideoTracks();
         this.set({
           constraints,
@@ -102,19 +113,14 @@
         window.stream = stream; // make variable available to browser console
         // this.refs.video.srcObject = stream;
         this.refs.video.srcObject = stream;
-      })
-      .catch(error => {
-        console.error(error)
-        this.set({
-          error
-        })
-      })
-    },
-    methods: {
-      snap () {
-        this.set({
-          code: takeSnapshot(this.refs.canvas, this.refs.video, this.refs.image)
-        })
+      },
+      start () {
+        (async () => {
+          while (true) {
+            this.snap()
+            await wait(100)
+          }
+        })()
       }
     },
     components: {

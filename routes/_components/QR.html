@@ -1,5 +1,4 @@
 <svg
-  shapeRendering='crispEdges'
   viewBox="0 0 {{cells.length}} {{cells.length}}"
 >
   {{#each cells as row, y}}
@@ -7,16 +6,25 @@
       <rect :x :y
         height='1'
         width='1'
-        style="fill:{{cell ? 'black' : 'white'}}"
+        class="{{cell && 'filled' || ''}}"
       />
     {{/each}}
   {{/each}}
 </svg>
 
+<style>
+rect {
+  stroke-width: none;
+  fill: transparent;
+}
+.filled {
+  fill: black;
+}
+</style>
+
 <script>
   import QRCodeImpl from 'qr.js/lib/QRCode'
   import ErrorCorrectLevel from 'qr.js/lib/ErrorCorrectLevel'
-  console.log("Qr:", QRCodeImpl, ErrorCorrectLevel)
   export default {
     data () {
       return {
@@ -30,7 +38,7 @@
       }
     },
     computed: {
-      qrcode: (level, value) => {
+      qrcode: (level, value = '') => {
         const qrcode = new QRCodeImpl(-1, ErrorCorrectLevel[level])
         qrcode.addData(value)
         qrcode.make()

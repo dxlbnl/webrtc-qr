@@ -1,0 +1,206 @@
+<:Head>
+  <title>Sapper project template</title>
+</:Head>
+
+<Layout page='flow'>
+  <div class="{{takingSnap ? 'snapping' : ''}}">
+    <section>
+      <h4>State ({{id}}): {{state}}</h4>
+      <p>Code: {{JSON.stringify(code)}}</p>
+      {{#if qrValue}}
+        <QR value={{qrValue}} />
+      {{elseif webcam}}
+        <button on:click="flow()">Restart</button>
+      {{/if}}
+    </section>
+
+    <canvas ref:image alt='debug' />
+
+  </div>
+  <video ref:video playsinline width="640" height="480" autoplay></video>
+
+</Layout>
+
+<style>
+  .snapping {
+    background: red;
+  }
+  p {
+    text-align: center;
+    margin: 0 auto;
+  }
+
+  p {
+    margin: 1em auto;
+  }
+</style>
+
+<script>
+
+  // ES6 import
+  import jsQR from "jsqr"
+ 
+  import Layout from './_components/Layout.html'
+  import QR from './_components/QR.html'
+
+  function wait (ms) {
+    return new Promise((resolve, reject) => window.setTimeout(resolve, ms))
+  }
+
+  export default {
+    data() {
+      return {
+        state: 'Uninitialized',
+        webcam: false,
+        id: Math.random().toString(36).substring(7)
+      }
+    },
+    oncreate () {
+
+      (async () => {
+        this.set({ state: 'Setting up webcam' })
+        const cam = await this.setupCam()
+        this.set({
+          webcam: true,
+          state: `Cam setup: ${cam.label}`
+        })
+      })().then(() => this.flow())
+    },
+    methods: {
+      async flow () {
+        // Render a welcome payload
+        this.set({
+          qrValue: JSON.stringify({
+            req: 'webrtcSetup',
+            id: this.get('id')
+          })
+        })
+
+        this.set({ state: 'Reading code' })
+        const code = await this.readQR()
+        this.set({ state: 'Read code' })
+
+
+        this.set({
+          qrValue: null,
+          code: JSON.stringify(code)
+        })
+
+      },
+      async setupCam () {
+        // Not adding `{ audio: true }` since we only want video now
+        const constraints = {
+          audio: false,
+          video: true
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints)
+        const videoTracks = stream.getVideoTracks()
+
+        stream.oninactive = function() {
+          console.log('Stream inactive')
+        }
+        this.refs.video.srcObject = stream
+        console.log("videoTracks", videoTracks)
+        return {
+          constraints,
+          stream,
+          label: videoTracks[0].label
+        }
+      },
+      snap (canvas) {
+        const video = this.refs.video
+        const image = this.refs.image
+
+        // Get the exact size of the video element.
+        const width = video.videoWidth
+        const height = video.videoHeight
+
+        if (!width || !height) return null
+
+        // Context object for working with the canvas.
+        const context = canvas.getContext('2d')
+
+        // Set the canvas to the same dimensions as the video.
+        canvas.width = width
+        canvas.height = height
+
+        image.width = width
+        image.height = height
+
+        // Draw a copy of the current frame from the video on the canvas.
+        context.drawImage(video, 0, 0, width, height)
+
+        // Get an image dataURL from the canvas.
+        var imageDataURL = canvas.toDataURL('image/png')
+        const imageData = context.getImageData(0, 0, width, height)
+
+        // Set the dataURL as source of an image element, showing the captured photo.
+        const imgContext = image.getContext('2d')
+        imgContext.drawImage(video, 0, 0, width, height)
+        // image.setAttribute('src', imageDataURL) 
+
+        const code = jsQR(imageData.data, imageData.width, imageData.height)
+
+        /*
+        location: {…}
+          ​​bottomLeftFinderPattern: Object { x: 626.75, y: 72.5 }
+          ​​topLeftFinderPattern: Object { x: 496, y: 111.5 }
+          ​​topRightFinderPattern: Object { x: 106, y: 3 }
+          ​​bottomRightAlignmentPattern: Object { x: 334.5, y: 0.5 }
+
+          ​​bottomLeftCorner: Object { x: 645.4616257093102, y: 74.99727889927424 }
+          ​​bottomRightCorner: Object { x: 325.91001656967416, y: -5.403951459852417 }
+          ​​topLeftCorner: Object { x: 508.2326937076778, y: 119.90760991673208 }
+          ​​topRightCorner: Object { x: 76.75663416273225, y: -0.9028591947961724 }
+        */
+
+        if (code) {
+          const unpack = ({ x, y }) => ([x, y])
+          imgContext.strokeStyle = 'red'
+          imgContext.beginPath()
+          imgContext.moveTo(...unpack(code.location.bottomLeftCorner))
+          imgContext.lineTo(...unpack(code.location.bottomRightCorner))
+          imgContext.lineTo(...unpack(code.location.topRightCorner))
+          imgContext.lineTo(...unpack(code.location.topLeftCorner))
+          imgContext.closePath()
+          imgContext.stroke()
+        }
+
+
+
+
+        return code
+      },
+      async readQR () {
+        const canvas = document.createElement('canvas')
+
+        while (true) {
+          this.set({
+            takingSnap: true
+          })
+          const code = this.snap(canvas)
+          if (code) {
+            console.log("Code", code)
+            // this.refs.image.setAttribute('src', null) 
+            this.set({
+              takingSnap: false
+            })
+            return code
+          } else {
+            await wait(100)
+            this.set({
+              takingSnap: false
+            })
+            await wait(500)
+          }
+        }
+
+
+      }
+    },
+    components: {
+      Layout, QR
+    }
+  }
+</script>

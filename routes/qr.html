@@ -1,0 +1,32 @@
+<:Head>
+  <title>QR</title>
+</:Head>
+
+<Layout page='qr'>
+  <h1>About this site</h1>
+
+  <input type='text' bind:value />
+  {{#if value}}
+    <QR :value />
+  {{/if}}
+</Layout>
+
+<script>
+  import Layout from './_components/Layout.html';
+  import QR from './_components/QR.html'
+
+  function wait (ms) {
+    return new Promise((resolve, reject) => window.setTimeout(resolve, ms))
+  }
+
+  export default {
+    data () {
+      return {
+        value: ''
+      }
+    },
+    components: {
+      Layout, QR
+    }
+  };
+</script>
